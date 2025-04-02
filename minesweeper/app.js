@@ -10,6 +10,7 @@ let timer = 0;
 let interval;
 let isTimerStarted = false;
 
+// 게임 시작하기기
 function initGame(level = 'beginner') {
     const config = levels[level];
     mineCount = config.mines;
@@ -17,6 +18,7 @@ function initGame(level = 'beginner') {
     createBoard(config.rows, config.cols, config.mines);
 }
 
+// 보드판 만들기
 function createBoard(rows, cols, mines) {
     mineCount = mines
     board = [];
@@ -58,22 +60,61 @@ function createBoard(rows, cols, mines) {
 
     renderBoard(rows, cols);
 }
+// 지뢰 설정하기
+function renderBoard(rows, cols) {
+    const boardElement = document.getElementById('board');
+    boardElement.style.gridTemplateColumns = `repeat(${cols}, 30px)`; 
+    boardElement.innerHTML = ''; 
 
-function openCell(row, col) {
+    for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < cols; j++) {
+            const cellElement = document.createElement('div');
+            cellElement.id = `cell-${i}-${j}`;
+            cellElement.classList.add('cell');
+            cellElement.onclick = () => openCell(i, j);
+            cellElement.oncontextmenu = (e) => {
+                e.preventDefault();
+                flagCell(i, j);
+            };
+
+            boardElement.appendChild(cellElement);
+        }
+    }
+}
+
+// 우클릭 -> 깃발
+function flagCell(row, col) {
     const cell = board[row][col];
-    if (cell.revealed || cell.flagged) {
-        return; // 이미 열려있거나 깃발이 표시된 셀은 열지 않음
+    if (cell.revealed) {
+        return; 
     }
     if (!isTimerStarted) {
         startTimer();
         isTimerStarted = true;
     }
-    cell.revealed = true; // 셀을 열음
+    cell.flagged = !cell.flagged; 
+    const cellElement = document.querySelector(`#cell-${row}-${col}`);
+    cellElement.innerHTML = cell.flagged ? '🚩' : '';
+    updateMineCount(cell.flagged ? -1 : 1); 
+    checkWinCondition();
+}
+
+// 좌클릭 -> 셀 열기
+function openCell(row, col) {
+    const cell = board[row][col];
+    if (cell.revealed || cell.flagged) {
+        return;
+    }
+    if (!isTimerStarted) {
+        startTimer();
+        isTimerStarted = true;
+    }
+    cell.revealed = true;
     const cellElement = document.querySelector(`#cell-${row}-${col}`);
     if (cell.mine) {
         cellElement.innerHTML = '💣';
         cellElement.style.backgroundColor = 'red';
-        gameOver("Game Over! You hit a mine."); // 게임 오버 로직
+        gameOver(false); 
     } else {
         cellElement.innerHTML = cell.adjacentMines > 0 ? cell.adjacentMines : '';
         cellElement.style.backgroundColor = 'lightgray';
@@ -83,37 +124,22 @@ function openCell(row, col) {
                     openCell(i, j);
                 }
             }
-            checkWinCondition();
         }
     }
+    checkWinCondition();
 }
 
+// 해치웠나?
 function checkWinCondition() {
     for (let i = 0; i < board.length; i++) {
         for (let j = 0; j < board[i].length; j++) {
             if (!board[i][j].mine && !board[i][j].revealed) {
-                return; // 아직 열지 않은 지뢰가 아닌 칸이 있음
+                return; 
             }
         }
     }
-    gameOver("Congratulations! You've cleared all the mines!");
+    gameOver(true);
     disableAllCells();
-}
-
-
-function flagCell(row, col) {
-    const cell = board[row][col];
-    if (cell.revealed) {
-        return; // 이미 열린 셀에는 깃발을 추가하지 않음
-    }
-    if (!isTimerStarted) {
-        startTimer();
-        isTimerStarted = true;
-    }
-    cell.flagged = !cell.flagged; // 깃발 상태 토글
-    const cellElement = document.querySelector(`#cell-${row}-${col}`);
-    cellElement.innerHTML = cell.flagged ? '🚩' : '';
-    updateMineCount(cell.flagged ? -1 : 1); // 남은 지뢰 수 업데이트
 }
 
 function updateMineCount(change) {
@@ -121,25 +147,33 @@ function updateMineCount(change) {
     document.getElementById('mine-count').innerText = `Mines: ${mineCount}`;
 }
 
-function gameOver(message) {
-    alert(message);
-    revealAllMines(); // 모든 지뢰 보여주기
+// 게임 종료(승리 패배 모두)
+function gameOver(isClear) {
+    if (isClear) {
+        window.alert('축하합니다. 승리하셨습니다.\nCongratulation. You win')
+    } else {
+        window.alert('패배하였습니다.\nYou lose.')
+
+    }
+    revealAllMines();
     disableAllCells();
 }
 
+// 셀 비활성화
 function disableAllCells() {
     const cells = document.querySelectorAll('.cell');
     cells.forEach(cell => {
-        cell.onclick = null; // 클릭 이벤트 리스너 제거
-        cell.oncontextmenu = null; // 우클릭 이벤트 리스너 제거
+        cell.onclick = null; 
+        cell.oncontextmenu = null; 
     });
 }
 
+// 셀 활성화화
 function enableAllCells() {
     const cells = document.querySelectorAll('.cell');
     cells.forEach((cell, index) => {
-        let row = Math.floor(index / cols); // 적절한 row 계산
-        let col = index % cols; // 적절한 col 계산
+        let row = Math.floor(index / cols); 
+        let col = index % cols;
         cell.onclick = () => openCell(row, col);
         cell.oncontextmenu = (e) => {
             e.preventDefault();
@@ -148,17 +182,20 @@ function enableAllCells() {
     });
 }
 
+// 셀 좌좌클릭 이벤트
 function handleCellClick(e) {
     const cellId = e.target.id.split('-');
     openCell(parseInt(cellId[1]), parseInt(cellId[2]));
 }
 
+// 셀 우클릭 이벤트
 function handleCellRightClick(e) {
     e.preventDefault();
     const cellId = e.target.id.split('-');
     flagCell(parseInt(cellId[1]), parseInt(cellId[2]));
 }
 
+// 모든 지뢰 표시
 function revealAllMines() {
     for (let i = 0; i < board.length; i++) {
         for (let j = 0; j < board[i].length; j++) {
@@ -172,49 +209,23 @@ function revealAllMines() {
     }
 }
 
-function renderBoard(rows, cols) {
-    const boardElement = document.getElementById('board');
-    boardElement.style.gridTemplateColumns = `repeat(${cols}, 30px)`; // 동적으로 열 너비 설정
-    boardElement.innerHTML = ''; 
-
-    for (let i = 0; i < rows; i++) {
-        for (let j = 0; j < cols; j++) {
-            const cellElement = document.createElement('div');
-            cellElement.id = `cell-${i}-${j}`;
-            cellElement.classList.add('cell');
-            // cellElement.addEventListener('click', () => openCell(i, j));
-            // cellElement.addEventListener('contextmenu', (e) => {
-            //     e.preventDefault();
-            //     flagCell(i, j);
-            // });
-            cellElement.onclick = () => openCell(i, j);
-            cellElement.oncontextmenu = (e) => {
-                e.preventDefault();
-                flagCell(i, j);
-            };
-
-            boardElement.appendChild(cellElement);
-        }
-    }
-}
-
+// 사용자 지정 게임 시작
 function startCustomGame() {
-    const rows = document.getElementById('rows').value || 9; // 입력값이 없으면 기본값 9
-    const cols = document.getElementById('cols').value || 9; // 입력값이 없으면 기본값 9
-    const mines = Number(document.getElementById('mines').value || Math.floor((rows * cols) / 6)); // 입력값이 없으면 총 셀 수의 약 1/6로 설정
+    const rows = document.getElementById('rows').value || 9; 
+    const cols = document.getElementById('cols').value || 9; 
+    const mines = Number(document.getElementById('mines').value || Math.floor((rows * cols) / 6)); 
 
     if (mines > rows * cols) {
-        alert("Mines exceed the number of cells! Adjusting to max possible.");
-        mines = rows * cols - 1; // 지뢰 수를 최대 가능한 수로 조정
+        alert("마인의 최대치를 초과하였습니다. \n Mines exceed the number of cells!");
+        window.location.reload()
+        return
     }
     
-    document.getElementById('mine-count').innerText = `Mines: ${mines}`; // 화면에 지뢰 수 업데이트
-    
+    document.getElementById('mine-count').innerText = `Mines: ${mines}`; 
     createBoard(rows, cols, mines);
 }
 
-
-
+// 타이머
 function startTimer() {
     clearInterval(interval);
     timer = 0;
@@ -224,6 +235,7 @@ function startTimer() {
     }, 1000);
 }
 
+// 게임 재시작
 function resetGame() {
     clearInterval(interval);
     document.getElementById('timer').innerText = `Time: 0s`;
