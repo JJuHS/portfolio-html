@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paint</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="paint-title" id="paint-title">
+        <p>그  림  판</p>
+    </div>
+    <div class="color-options">
+        <div class="color-picker">
+            <input type="color" id="color" />
+        </div>
+        <div class="color-option" style="background-color: #ffffff;" data-color="#7d5fff"></div>
+        <div class="color-option" style="background-color: #fff200;" data-color="#fff200"></div>
+        <div class="color-option" style="background-color: #ffb8b8;" data-color="#ffb8b8"></div>
+        <div class="color-option" style="background-color: #ff9f1a;" data-color="#ff9f1a"></div>
+        <div class="color-option" style="background-color: #ff3838;" data-color="#ff3838"></div>
+        <div class="color-option" style="background-color: #7efff5;" data-color="#7efff5"></div>
+        <div class="color-option" style="background-color: #32ff7e;" data-color="#32ff7e"></div>
+        <div class="color-option" style="background-color: #18dcff;" data-color="#18dcff"></div>
+        <div class="color-option" style="background-color: #c56cf0;" data-color="#c56cf0"></div>
+        <div class="color-option" style="background-color: #000000;" data-color="#7d5fff"></div>
+        <div class="line-width-box">
+            <span id="line-width-display">5 px</span>
+            <input id="line-width" type="range" min="1" max="10" value="5" step="0.1" />
+        </div>
+    </div>
+    <div class="canvas-and-btns">
+        <canvas></canvas>
+        <div class="btns">
+            <div class="language-switcher">
+                <button id="lang-ko">한국어</button>
+                <button id="lang-en">English</button>
+            </div>
+            <button id="mode-btn" data-en="Paint" data-ko="그리기">그리기</button>
+            <button id="destroy-btn" data-en="Clear All" data-ko="전체 지우기">전체 지우기</button>
+            <button id="eraser-btn" data-en="Eraser" data-ko="지우개">지우개</button>
+            <label for="file" id="file-label" data-en="Add Image" data-ko="이미지 추가">
+                이미지 추가
+                <input type="file" accept="image/*" id="file" />
+            </label>
+            <input type="text" placeholder="텍스트 입력" id="text-input" title="더블 클릭">
+            <button id="save-btn" data-en="Save as Image" data-ko="이미지로 저장">이미지로 저장</button>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
