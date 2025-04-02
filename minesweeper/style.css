@@ -1,0 +1,93 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f0f0;
+    margin: 0;
+}
+
+#game-info {
+    display: flex;
+    align-items: center;
+    padding-left: 50px;
+    padding-right: 50px;
+    border: 1px solid gray;
+    border-radius: 10px;
+    margin: 0;
+    column-gap: 20px;
+}
+
+#board {
+    display: grid;
+    margin: 10px;
+    border: 3px solid black;
+    padding: 5px;
+    padding-right: 10px;
+    gap: 1px; 
+    grid-template-columns: repeat(9, 30px);
+    justify-content: start; 
+    margin-top: 5px;
+    max-width: 95%;
+    box-sizing: border-box;
+    overflow-x:auto;
+}
+
+
+.cell {
+    width: 30px;
+    height: 30px;
+    background-color: #8a8a8a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #000;
+    border: solid 3px;
+    border-color: #ffffff #7a7a7a #7a7a7a #ffffff;
+    user-select: none;
+}
+
+.cell.open {
+    background-color: #bdbdbd;
+    border-color: #7a7a7a #ffffff #ffffff #7a7a7a;
+}
+
+.cell.mine {
+    background-color: red;
+}
+
+.cell.flagged {
+    background-color: #d9d9d9;
+}
+
+button {
+    padding: 5px 10px;
+    margin: 5px;
+    border-radius: 5px;
+    border: none;
+    background-color: #e0e0e0;
+    cursor: pointer;
+    user-select: none;
+}
+
+button:hover {
+    background-color: #d3d3d3;
+}
+
+button:active {
+    transform: translateY(2px);
+}
+
+#level-selection,
+#custom-settings {
+    text-align: center;
+    margin: 10px;
+}
+
+#custom-settings input[type="number"] {
+    width: 60px;
+    margin-right: 10px;
+    padding: 4px;
+}
