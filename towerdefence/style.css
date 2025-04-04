@@ -1,0 +1,83 @@
+body, html {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #f0f0f0;
+}
+
+#game-init{
+    cursor: pointer;
+}
+
+#game-container {
+    width: 800px;
+    height: 600px;
+    background-color: #333333;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#coin-status{
+    background-color: #6f4f28;
+    color: white;
+    align-self: self-end;
+    height: 30px;
+    width: 100px;
+    text-align: center;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    border: 1px solid white;
+}
+
+#mainCanvas {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background-color: #333333;
+}
+
+#gameCanvas {
+    width: 100%;
+    height: 100%;
+    background-color: #333333;
+}
+
+#game-list {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    width: 80%;
+    height: 30%;
+    border-radius: 10px;
+    background-color: #a37c4c;
+}
+
+.game-data {
+    background-color: #6f4f28;
+    padding: 10px;
+    border-radius: 10px;
+    margin: 10px;
+    color: white;
+}
+
+#shopCanvas {
+    width: 100%;
+    height: 100%;
+    background-color: #333333;
+}
+
+.footer-btn{
+    width: 300px;
+    height: 40px;
+    background-color: #6f4f28;
+    color: white;
+    font-size: large;
+}

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Defence</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="main-screen">
+        <h1>Tower Defence</h1>
+    </div>
+    <div id="game-container">
+        <div id="coin-status">0 coin</div>
+        <div id="mainCanvas">
+            <div id="game-list"></div>
+        </div>
+        <footer>
+            <button onclick="goMain()" class="footer-btn">Main</button>
+            <button onclick="goShop()" class="footer-btn">Shop</button>
+        </footer>
+    </div>
+    <!-- Script -->
+    <script src="app.js"></script>
+    <script src="src/tower.js"></script>
+    <script src="src/enemy.js"></script>
+    <script src="src/game.js"></script>
+</body>
+</html>
