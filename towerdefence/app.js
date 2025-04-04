@@ -23,6 +23,19 @@ function gameInit() {
     goMain()
 }
 
+function setFocusGameInput() {
+    const gameIdInput = document.getElementById('game-id');
+    if (gameIdInput) {
+        gameIdInput.focus();
+    }
+}
+
+function handleEnterKey(event) {
+    if (event.key === 'Enter') {
+        gameInit()
+    } 
+}
+
 function goShop() {
     window.location.href = 'shop.html';
 }
@@ -31,10 +44,31 @@ function goMain() {
     window.location.href = 'main.html';
 }
 
+function editNickName() {
+    const newNickname = prompt('Enter yout new nickname:', "");
+    const maxNicknameLength = 20;
+    if (newNickname && newNickname.length <= maxNicknameLength) {
+        const userStatus = JSON.parse(localStorage.getItem('userStatus'));
+        userStatus.id = newNickname;
+        localStorage.setItem('userStatus', JSON.stringify(userStatus));
+        updateNicknameDisplay();
+    } else if (newNickname.length >= maxNicknameLength) {
+        alert(`닉네임 글자수는 ${maxNicknameLength}로 제한되어 있습니다. \n Nickname must be no more than ${maxNicknameLength} characters`)
+    } 
+}
+
+function updateNicknameDisplay() {
+    const userStatus = JSON.parse(localStorage.getItem('userStatus'));
+    if (userStatus && userStatus.id !== undefined) {
+        document.getElementById('nickname').textContent = userStatus.id
+    }
+}
+
+// 전체 게임 정보
 class GameData {
     static nextlevel = 1;
 
-    constructor(level, enemies = [], cleared = false, stars = 0, thumbail='') {
+    constructor(enemies = [], cleared = false, stars = 0, thumbail='') {
         this.level = GameData.nextlevel++;
         this.enemies = enemies;
         this.cleared = cleared;
@@ -51,14 +85,41 @@ class GameData {
     }
 }
 
+// 유저 정보
 class userStatus {
     constructor(id='', coin=0, maxLevel=0) {
         this.id = id
         this.coin = coin
         this.maxLevel = maxLevel
+        this.waterlevel = 1
+        this.firelevel = 1
+        this.windlevel = 1
+        this.towerlevel = {}
     }
     updateCoin(change) {
         this.coin += change
+    }
+
+    upgradeTowerLevel(towerId) {
+        if (towerId in this.towerlevel) {
+            this.towerlevel[towerId]++;
+        } else {
+            this.towerlevel[towerId] = 1
+        }
+    }
+
+    upgradeAttributeLevel(attribute) {
+        switch (attribute) {
+            case 'fire':
+                this.firelevel++;
+                break;
+            case 'water':
+                this.waterlevel++;
+                break;
+            case 'wind':
+                this.windlevel++;
+                break;
+        }
     }
 
     updateMaxLevel(level) {
@@ -97,3 +158,8 @@ document.addEventListener('DOMContentLoaded', function() {
     displayGameData();
     updateCoinStatus();
 })
+
+window.onload = function() {
+    updateNicknameDisplay();
+    setFocusGameInput();
+}

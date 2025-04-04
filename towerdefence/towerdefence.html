@@ -12,7 +12,7 @@
     </div>
     <div id="game-container">
         <div>Enter your name</div>
-        <input type="text" name="game-id" id="game-id">
+        <input type="text" name="game-id" id="game-id" maxlength="20" onkeyup="handleEnterKey(event)">
         <button onclick="gameInit()" class="game-init">start</button>
     </div>
     <!-- Script -->
@@ -20,6 +20,5 @@
     <script src="src/tower.js"></script>
     <script src="src/enemy.js"></script>
     <script src="src/game.js"></script>
-    
 </body>
 </html>

@@ -11,7 +11,13 @@
         <h1>Tower Defence</h1>
     </div>
     <div id="game-container">
-        <div id="coin-status">0 coin</div>
+        <div id="status-bar">
+            <div id="nickname-area">
+                <span id="nickname">Username</span>
+                <img src="/public/icon/editIcon.png" alt="edit" onclick="editNickName()" id="nickname-edit-icon">
+            </div>
+            <div id="coin-status">0 coin</div>
+        </div>
         <div id="mainCanvas">
             <div id="game-list"></div>
         </div>
