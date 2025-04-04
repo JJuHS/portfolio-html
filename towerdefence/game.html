@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,14 +17,14 @@
                 <p id="coins-earned">Coins: 0</p>
             </div>
             <div id="controls">
-                <button id="pause-btn">Pause</button>
-                <button id="restart-btn">Restart</button>
-                <button id="quit-btn">Quit</button>
-                <button id="speed-btn">2x Speed</button>
+                <button id="pause-btn" class="game-button">Pause</button>
+                <button id="restart-btn" class="game-button">Restart</button>
+                <button id="quit-btn" class="game-button" onclick="quitGame()">Quit</button>
+                <button id="speed-btn" class="game-button">2x Speed</button>
             </div>
         </div>
-        <canvas id="gameCanvas"></canvas>
+        <canvas id="gameCanvas" width="800" height="200"></canvas>
     </div>
-    <script src="game.js"></script>
+    <script src="/src/game.js"></script>
 </body>
 </html>

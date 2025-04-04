@@ -15,8 +15,8 @@ function gameInit() {
     // TODO: 게임 데이터 집어넣기
     if (!localStorage.getItem('gameDatas')) {
         const gameDatas = [
-            new GameData(),
-            new GameData()
+            new GameData([1,1,1,1,0,0,4,4,4,4,0,0,7,7,7,7]),
+            new GameData([1,1,1,1,0,0,4,4,4,4,0,0,7,7,7,7])
         ];
         localStorage.setItem('gameDatas', JSON.stringify(gameDatas));
     }
