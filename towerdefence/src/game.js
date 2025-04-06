@@ -5,8 +5,9 @@
 // TODO : 2x    /디자인
 // TODO : restart   /디자인
 // TODO : 타이머 / 디자인
+// TODO : 목숨 수 업데이트 / 디자인
+// TODO : 적 5마리 이상 endpoint 지나가면 실패 종료 /디자인
 
-// TODO : 적 5마리 이상 endpoint 지나가면 실패 종료 /기능, 디자인
 
 // TODO : 타워 설치 준비 시간 주기  /기능, 디자인
 // TODO : 빈 곳 클릭해서 타워 생성  /기능, 디자인
@@ -16,7 +17,6 @@
 // TODO : 공격, 사망 /기능, 디자인
 // TODO : coin 업데이트 /기능, 디자인
 // TODO : 적 남은 수 업데이트 / 기능, 디자인
-// TODO : 목숨 수 업데이트 / 기능, 디자인인
 
 // TODO : 적 다 제압시 승리 종료    /기능, 디자인
 
@@ -26,21 +26,33 @@ function initGame() {
     drawMap();
     initGameControls();
     startTimer();
+    enemyNumberUpdate();
+    setupCanvasClickListener();
 }
 
 let life = 5;
 let frameRate = 30;
+
 let enemySpawnIndex = 0;
 let waypoints = [];
 let enemies = [];
+let totalenemiesNumber = 0;
+let remainenemiesNumber = 0;
 let moveInfoEnemies = [];
+
 let map;
+
 let currentLevel;
+
 let towerPosition = [];
+
 let isGamePaused = false;
 let isDoubleSpeed = false;
+let isGameEnd = false;
+
 const tileWidth = 35;
 const tileHeight = 20;
+
 let gameTimer = 0;
 let gameInterval;
 
@@ -64,6 +76,12 @@ function loadGameData() {
             }
         });
     }
+    enemies.forEach(enemy => {
+        if (enemy !== 0) {
+            totalenemiesNumber++;
+        }
+        remainenemiesNumber = totalenemiesNumber;
+    });
 }
 
 function drawMap() {    
@@ -76,7 +94,14 @@ function drawMap() {
 
     map.board.forEach((row, y) => {
         row.forEach((cell, x) => {
-            ctx.fillStyle = cell === 1 ? 'black' : 'white';
+            if (cell === 1) {
+                ctx.fillStyle = 'black';
+            } else if (cell === 0) {
+                ctx.fillStyle = 'lemonchiffon';
+            } else {
+                ctx.fillStyle = 'white';
+            }
+
             ctx.fillRect(50+x * tileWidth, 20+y * tileHeight, tileWidth, tileHeight)
             ctx.strokeStyle = '#312390';
             ctx.strokeRect(50+x * tileWidth, 20+y * tileHeight, tileWidth, tileHeight)
@@ -90,6 +115,7 @@ function initGameControls() {
     document.getElementById('quit-btn').addEventListener('click', quitGame);
     document.getElementById('speed-btn').addEventListener('click', toggleSpeed);
 }
+
 function togglePause() {
     isGamePaused = !isGamePaused
     const pauseBtn = document.getElementById('pause-btn');
@@ -124,6 +150,8 @@ function toggleSpeed() {
         doubleSpeedBtn.textContent = '2x Speed';
     }
 }
+
+
 // 타이머
 function startTimer() {
     const timeDisplay = document.getElementById('game-time');
@@ -132,13 +160,25 @@ function startTimer() {
     }
     gameTimer = 0;
     gameInterval = setInterval(() => {
-        if (!isGamePaused) {
+        if (!isGamePaused && !isGameEnd) {
             gameTimer++;
         }
         const minutes = Math.floor(gameTimer / 60);
         const seconds = gameTimer % 60;
         timeDisplay.textContent = `${pad(minutes)}:${pad(seconds)}`
     }, 1000);
+}
+
+// life 표시
+function lifeUpdate () {
+    const lifeDisplay = document.getElementById('life-remaining');
+    lifeDisplay.textContent = `life : ${life}/5`
+}
+
+// 적 수 표시
+function enemyNumberUpdate () {
+    const enemyDisplay = document.getElementById('enemies-remaining')
+    enemyDisplay.textContent = `enemy : ${remainenemiesNumber}/${totalenemiesNumber}`
 }
 
 // 적 움직임
@@ -181,6 +221,13 @@ function enemyMove() {
                     enemy.currentWaypointIndex++;
                     if (enemy.currentWaypointIndex >= waypoints.length) {
                         enemy.isMoving = false;  // 마지막 웨이포인트에 도달했으면 이동 중지
+                        life--;
+                        remainenemiesNumber--;
+                        enemyNumberUpdate();
+                        if (life === 0) {
+                            loseGame();
+                        }
+                        lifeUpdate();
                     }
                 } else {
                     // 선형 이동 계산
@@ -215,9 +262,41 @@ function attack() {
 function enemyDie () {
 
 }
-function installTower() {
-
+function setupCanvasClickListener() {
+    const canvas = document.getElementById('gameCanvas');
+    canvas.addEventListener('click', handleCanvasClick);
 }
+
+function handleCanvasClick(event) {
+    const canvas = document.getElementById('gameCanvas');
+    
+    const rect = canvas.getBoundingClientRect();
+    console.log(event);
+    
+    const clickX = event.clientX - rect.left;
+    const clickY = event.clientY - rect.top;
+    
+    const gridX = Math.floor((clickX - 50) / tileWidth);
+    const gridY = Math.floor((clickY - 20) / tileHeight);
+    console.log(map);
+    
+    if (map && map.board[gridY][gridX] === 0) { // 0은 타워 설치 가능 구역
+        if (!towerPosition.find(p => p.x === gridX && p.y === gridY)) {
+            installTower(gridX, gridY);
+        } else {
+            console.log('이미 타워 있음.')
+        }
+    } else {
+        console.log('타워 설치 불가');
+        
+    }
+}
+function installTower(gridX, gridY) {
+    towerPosition.push({ x: gridX, y: gridY });
+    console.log(gridX, gridY);
+    
+}   
+
 function upgradeTower() {
 
 }
@@ -228,10 +307,12 @@ function drawTowerRange() {
 function victoryGame() {
 }
 function loseGame() {
+    isGameEnd = !isGameEnd
 }
 
 setInterval(() => {
-    if (!isGamePaused ) {
+    if (isGameEnd) return;
+    if (!isGamePaused) {
         enemyMove();
         drawEnemies();
     }
@@ -354,6 +435,20 @@ class gameMap {
 const gameMapDatas = {
     1: new gameMap(1, 
         [
+        [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+        ],
+        [[0, 3], [20, 3]],
+        [3, 0],
+        [3, 7],
+    ),
+    2: new gameMap(2, 
+        [
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -364,21 +459,6 @@ const gameMapDatas = {
         ],
         [[0, 3], [20, 3]],
         [3, 0],
-        [3, 7]
-    ),
-    2: new gameMap(1, 
-        [
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 1, 1, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        ],
-        [[3, 0], [3, 7]],
-        [3, 0],
-        [3, 7]
+        [3, 7],
     )
 }
