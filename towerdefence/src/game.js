@@ -1,24 +1,39 @@
 // TODO : 맵그리기 /디자인
+// TODO : 적 나오게 하기 및 이동    /디자인 
+// TODO : pause /디자인
+// TODO : quit  /디자인
+// TODO : 2x    /디자인
+// TODO : restart   /디자인
+// TODO : 타이머 / 디자인
+
+// TODO : 적 5마리 이상 endpoint 지나가면 실패 종료 /기능, 디자인
+
 // TODO : 타워 설치 준비 시간 주기  /기능, 디자인
-// TODO : 적 나오게 하기 및 이동    /기능, 디자인   !CONTINUE
 // TODO : 빈 곳 클릭해서 타워 생성  /기능, 디자인
 // TODO : 타워 업그레이드   /기능, 디자인
-// TODO : 공격, 사망,   /기능, 디자인
-// TODO : coin 업데이트 /기능, 디자인
-// TODO : 적 다 제압시 승리 종료    /기능, 디자인
-// TODO : 적 5마리 이상 endpoint 지나가면 실패 종료 /기능, 디자인
-// TODO : pause /기능, 디자인
-// TODO : quit  /디자인
-// TODO : 2x    /기능, 디자인
-// TODO : restart   /기능, 디자인
 // TODO : 타워 범위 표시    /기능, 디자인
 
+// TODO : 공격, 사망 /기능, 디자인
+// TODO : coin 업데이트 /기능, 디자인
+// TODO : 적 남은 수 업데이트 / 기능, 디자인
+// TODO : 목숨 수 업데이트 / 기능, 디자인인
+
+// TODO : 적 다 제압시 승리 종료    /기능, 디자인
+
 function initGame() {
-    const level = getGamelevel();
+    getGamelevel();
+    loadGameData();
+    drawMap();
+    initGameControls();
+    startTimer();
 }
-const frameRate = 1000;
+
+let life = 5;
+let frameRate = 30;
+let enemySpawnIndex = 0;
+let waypoints = [];
 let enemies = [];
-let activeEnemies = [];
+let moveInfoEnemies = [];
 let map;
 let currentLevel;
 let towerPosition = [];
@@ -26,6 +41,8 @@ let isGamePaused = false;
 let isDoubleSpeed = false;
 const tileWidth = 35;
 const tileHeight = 20;
+let gameTimer = 0;
+let gameInterval;
 
 // 데이터 불러오기
 function getGamelevel() {
@@ -37,17 +54,35 @@ function getGamelevel() {
 
 function loadGameData() {
     const gameData = JSON.parse(localStorage.getItem('gameDatas'));
-
+    
     if (gameData && gameData.length > 0) {
         gameData.forEach(data => {
             if (data.level === currentLevel) {
                 enemies = data.enemies;
                 map = gameMapDatas[currentLevel];
+                waypoints = map.road.map(position => new Waypoint(position[0] * tileWidth + 50, position[1] * tileHeight + 20));
             }
         });
     }
 }
 
+function drawMap() {    
+    const canvas = document.getElementById('gameCanvas');
+    if (!canvas) return;
+    if (!map) return;
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    map.board.forEach((row, y) => {
+        row.forEach((cell, x) => {
+            ctx.fillStyle = cell === 1 ? 'black' : 'white';
+            ctx.fillRect(50+x * tileWidth, 20+y * tileHeight, tileWidth, tileHeight)
+            ctx.strokeStyle = '#312390';
+            ctx.strokeRect(50+x * tileWidth, 20+y * tileHeight, tileWidth, tileHeight)
+        })
+    })
+}
 // 버튼에 이벤트 추가
 function initGameControls() {
     document.getElementById('pause-btn').addEventListener('click', togglePause);
@@ -55,10 +90,14 @@ function initGameControls() {
     document.getElementById('quit-btn').addEventListener('click', quitGame);
     document.getElementById('speed-btn').addEventListener('click', toggleSpeed);
 }
-
-// TODO
 function togglePause() {
     isGamePaused = !isGamePaused
+    const pauseBtn = document.getElementById('pause-btn');
+    if (isGamePaused) {
+        pauseBtn.textContent = 'Play'
+    } else {
+        pauseBtn.textContent = 'Pause'
+    }
 }
 function restartGame() {
     togglePause()
@@ -78,25 +117,102 @@ function quitGame() {
 }
 function toggleSpeed() {
     isDoubleSpeed = !isDoubleSpeed
+    const doubleSpeedBtn = document.getElementById('speed-btn');
+    if (isDoubleSpeed) {
+        doubleSpeedBtn.textContent = '1x Speed';
+    } else {
+        doubleSpeedBtn.textContent = '2x Speed';
+    }
 }
-function drawMap() {    
+// 타이머
+function startTimer() {
+    const timeDisplay = document.getElementById('game-time');
+    function pad(n) {
+        return n < 10 ? '0' + n : n;
+    }
+    gameTimer = 0;
+    gameInterval = setInterval(() => {
+        if (!isGamePaused) {
+            gameTimer++;
+        }
+        const minutes = Math.floor(gameTimer / 60);
+        const seconds = gameTimer % 60;
+        timeDisplay.textContent = `${pad(minutes)}:${pad(seconds)}`
+    }, 1000);
+}
+
+// 적 움직임
+function initEnemies() {
+    const enemySpawnInterval = setInterval(() => {
+        if (enemySpawnIndex < enemies.length) {
+            let enemyId = enemies[enemySpawnIndex];
+            if (enemyId > 0) {
+                const enemyInfo = totalEnemyDatas[enemyId];
+                const newEnemy = new Enemy(
+                    map.start[0] * tileWidth - 60,
+                    map.start[1] * tileHeight + 80,
+                    enemyInfo.speed
+                );
+                moveInfoEnemies.push(newEnemy);
+            }
+            enemySpawnIndex++;
+        } else {
+            clearInterval(enemySpawnInterval);
+        }
+    }, 1000);
+}
+
+function enemyMove() {
+    if (!isGamePaused && moveInfoEnemies.length > 0) {
+        moveInfoEnemies.forEach((enemy, index) => {
+            if (enemy.isMoving) {
+                const currentWaypoint = waypoints[enemy.currentWaypointIndex];
+                const dx = currentWaypoint.x - enemy.x;
+                const dy = currentWaypoint.y - enemy.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const speedModifier = isDoubleSpeed ? 2 : 1;  // 이중 속도면 2, 아니면 1
+                const moveDistance = (enemy.speed * speedModifier) * (tileWidth / frameRate);
+
+
+                if (distance < moveDistance) {
+                    // 다음 웨이포인트에 도달
+                    enemy.x = currentWaypoint.x;
+                    enemy.y = currentWaypoint.y;
+                    enemy.currentWaypointIndex++;
+                    if (enemy.currentWaypointIndex >= waypoints.length) {
+                        enemy.isMoving = false;  // 마지막 웨이포인트에 도달했으면 이동 중지
+                    }
+                } else {
+                    // 선형 이동 계산
+                    const ratio = moveDistance / distance;
+                    enemy.x += dx * ratio;
+                    enemy.y += dy * ratio;
+                }
+            } else {
+                moveInfoEnemies.splice(index, 1);  // 움직이지 않는 적은 리스트에서 제거
+            }
+        });
+    }
+}
+
+function drawEnemies() {
     const canvas = document.getElementById('gameCanvas');
-    if (!canvas) return;
-    if (!map) return;
-
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    map.board.forEach((row, y) => {
-        row.forEach((cell, x) => {
-            ctx.fillStyle = cell === 1 ? 'black' : 'white';
-            ctx.fillRect(50+x * tileWidth, 20+y * tileHeight, tileWidth, tileHeight)
-            ctx.strokeStyle = '#312390';
-            ctx.strokeRect(50+x * tileWidth, 20+y * tileHeight, tileWidth, tileHeight)
-        })
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    drawMap();
+    moveInfoEnemies.forEach(enemy => {
+        if (enemy.isMoving) {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(enemy.x, enemy.y + 5, tileWidth / 2, tileHeight / 2);
+        }
     })
 }
+
+// TODO
 function attack() {
+
+}
+function enemyDie () {
 
 }
 function installTower() {
@@ -109,88 +225,21 @@ function drawTowerRange() {
 
 }
 
-function initEnemies() {
-    activeEnemies = [];
-    enemies.forEach(id => {
-        if (id > 0) {
-            const enemyInfo = totalEnemyDatas[id]
-            if (enemyInfo) {
-                activeEnemies.push({
-                    id:id,
-                    x:(map.start[0] * tileWidth) + 50,
-                    y:(map.start[1] * tileHeight) + 20,
-                    hp:enemyInfo.hp,
-                    speed:enemyInfo.speed,
-                    reachedEnd:false,
-                    nextPathIndex:1
-                })
-            } else {
-                activeEnemies.push('no');
-            }
-        }
-    })
-}
-function enemyMove() {
-    const canvas = document.getElementById('gameCanvas');
-    activeEnemies.forEach(enemy => {
-        if (!enemy.reachedEnd) {
-            if (enemy.nextPathIndex < map.road.length) {
-                const nextPos = map.road[enemy.nextPathIndex];
-                
-                const targetX = nextPos[0] * tileWidth + 50;
-                const targetY = nextPos[1] * tileHeight + 20;
-
-                const dx = targetX - enemy.x;
-                const dy = targetY - enemy.y;
-                const distance = Math.sqrt(dx*dx + dy*dy);
-                const moveDistance = enemy.speed * tileWidth ;
-                if (distance < moveDistance) {
-                    enemy.x = targetX;
-                    enemy.y = targetY;
-                    enemy.nextPathIndex++;
-                    if (enemy.nextPathIndex >= map.road.length) {
-                        enemy.reachedEnd = true;
-                        enemyRemove(enemy);
-                    }
-                } else {
-                    const ratio = moveDistance / distance;
-                    enemy.x += dx * ratio;
-                    enemy.y += dy * ratio;
-                }
-            }
-        }
-    })
-    drawEnemies();
-}
-function drawEnemies() {
-    const canvas = document.getElementById('gameCanvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-
-    activeEnemies.forEach(enemy => {
-        ctx.fillStyle = 'red';
-        ctx.fillRect(enemy.x, enemy.y, tileWidth/2, tileHeight/2);
-    })
-}
-function enemyRemove(enemy) {
-    const index = activeEnemies.indexOf(enemy);
-    if (index > -1) {
-        activeEnemies.splice(index, 1);
-    }
-}
 function victoryGame() {
-
 }
 function loseGame() {
-
 }
+
+setInterval(() => {
+    if (!isGamePaused ) {
+        enemyMove();
+        drawEnemies();
+    }
+}, 1000/frameRate)
 
 document.addEventListener('DOMContentLoaded', function() {
     initGame();
-    loadGameData();
-    drawMap();
     initEnemies();
-    setInterval(enemyMove, 1000/frameRate)
 })
 
 
@@ -252,6 +301,46 @@ const totalEnemyDatas = {
     9: new enemyData(9, 'water', 350, 0.9, 3),
 }
 
+class Waypoint {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+}
+
+class Enemy {
+    constructor(x, y, speed) {
+        this.x = x;
+        this.y = y;
+        this.speed = speed;
+        this.currentWaypointIndex = 0;
+        this.isMoving = true;
+    }
+
+    moveToNextWaypoint(waypoints) {
+        if (!this.isMoving || this.currentWaypointIndex >= waypoints.length) {
+            this.isMoving = false;
+            return;
+        }
+
+        const currentWaypoint = waypoints[this.currentWaypointIndex];
+        const dx = currentWaypoint.x - this.x;
+        const dy = currentWaypoint.y - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const moveDistance = this.speed;
+
+        if (distance < moveDistance) {
+            this.x = currentWaypoint.x;
+            this.y = currentWaypoint.y;
+            this.currentWaypointIndex++;
+        } else {
+            this.x += (dx / distance) * moveDistance;
+            this.y += (dy / distance) * moveDistance;
+        }
+    }
+
+}
+
 class gameMap {
     constructor(level, board, road, start, end) {
         this.level = level
@@ -273,7 +362,7 @@ const gameMapDatas = {
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ],
-        [[3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [3, 5], [3, 6], [3, 7]],
+        [[0, 3], [20, 3]],
         [3, 0],
         [3, 7]
     ),
@@ -288,7 +377,7 @@ const gameMapDatas = {
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
         ],
-        [[3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [3, 5], [3, 6], [3, 7]],
+        [[3, 0], [3, 7]],
         [3, 0],
         [3, 7]
     )

@@ -160,6 +160,6 @@ document.addEventListener('DOMContentLoaded', function() {
 })
 
 window.onload = function() {
-    updateNicknameDisplay();
     setFocusGameInput();
+    updateNicknameDisplay();
 }
