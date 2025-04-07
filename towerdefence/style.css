@@ -130,6 +130,7 @@ body, html {
     height: 600px;
     display: flex;
     flex-direction: column;
+    position:relative;
 }
 #game-info {
     display: flex;
@@ -168,4 +169,47 @@ body, html {
     cursor: pointer;
     background-color: #a37c4c;
     color: white;
+}
+
+.enemy {
+    width: 20px;
+    height: 20px;
+    background-color: red;
+    position: absolute;
+    z-index: 10;
+    border-radius: 50%;
+}
+
+#tower-select {
+    display: none;
+    position: absolute;
+    background-color: #ffffff;
+    border: 1px solid #312390;
+    border-radius: 5px;
+    z-index: 50;
+}
+#tower-select button {
+    cursor: pointer;
+}
+
+.tower {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    position: absolute;
+    z-index: 20;
+    transform: translate(-50%, -50%);
+    border: 2px solid #000;
+}
+
+.tower[data-attribute="fire"] {
+    background-color: crimson;
+}
+
+.tower[data-attribute="water"] {
+    background-color: dodgerblue;
+}
+
+.tower[data-attribute="wind"] {
+    background-color: mediumseagreen;
 }

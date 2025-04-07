@@ -1,5 +1,4 @@
 // TODO : 맵그리기 /디자인
-// TODO : 적 나오게 하기 및 이동    /디자인 
 // TODO : pause /디자인
 // TODO : quit  /디자인
 // TODO : 2x    /디자인
@@ -7,30 +6,37 @@
 // TODO : 타이머 / 디자인
 // TODO : 목숨 수 업데이트 / 디자인
 // TODO : 적 5마리 이상 endpoint 지나가면 실패 종료 /디자인
+// TODO : 적 나오게 하기 및 이동    /디자인
 
 
-// TODO : 타워 설치 준비 시간 주기  /기능, 디자인
-// TODO : 빈 곳 클릭해서 타워 생성  /기능, 디자인
+// TODO : 타워 설치 준비 시간 주기  /기능, 디자인   !CONTINUE
+// TODO : 빈 곳 클릭해서 타워 생성  /기능, 디자인   !CONTINUE
 // TODO : 타워 업그레이드   /기능, 디자인
 // TODO : 타워 범위 표시    /기능, 디자인
 
-// TODO : 공격, 사망 /기능, 디자인
+// TODO : 공격, 사망 /기능, 디자인  
 // TODO : coin 업데이트 /기능, 디자인
 // TODO : 적 남은 수 업데이트 / 기능, 디자인
 
 // TODO : 적 다 제압시 승리 종료    /기능, 디자인
 
+document.addEventListener('DOMContentLoaded', function() {
+    initGame();
+    animationFrame = requestAnimationFrame(updateGame)
+})
+
 function initGame() {
     getGamelevel();
     loadGameData();
     drawMap();
-    initGameControls();
+    initEnemies();
     startTimer();
     enemyNumberUpdate();
-    setupCanvasClickListener();
+    initGameControls();
 }
 
 let life = 5;
+let animationFrame;
 let frameRate = 30;
 
 let enemySpawnIndex = 0;
@@ -39,12 +45,16 @@ let enemies = [];
 let totalenemiesNumber = 0;
 let remainenemiesNumber = 0;
 let moveInfoEnemies = [];
+let enemySpawnIntervalTime = 1000;
 
 let map;
+let selectedGrid = null;
+let selectedRect = null;
 
 let currentLevel;
 
-let towerPosition = [];
+let installedTower = [];
+let towerIdCounter = 3;
 
 let isGamePaused = false;
 let isDoubleSpeed = false;
@@ -119,38 +129,34 @@ function initGameControls() {
 function togglePause() {
     isGamePaused = !isGamePaused
     const pauseBtn = document.getElementById('pause-btn');
-    if (isGamePaused) {
-        pauseBtn.textContent = 'Play'
-    } else {
-        pauseBtn.textContent = 'Pause'
-    }
+    pauseBtn.textContent = isGamePaused ? 'Play' : 'Pause';
 }
+
 function restartGame() {
-    togglePause()
+    const wasPaused = isGamePaused;
+    isGamePaused = true;
     const confirmQuit = confirm("게임을 재시작하시겠습니까?");
     if (confirmQuit) {
         window.location.reload();
+    } else {
+        isGamePaused = wasPaused;
     }
-    togglePause()
 }
 function quitGame() {
-    togglePause()
+    const wasPaused = isGamePaused;
+    isGamePaused = true;
     const confirmQuit = confirm("메인페이지로 돌아가시겠습니까?");
     if (confirmQuit) {
         window.location.href = 'main.html';
+    } else {
+        isGamePaused = wasPaused;
     }
-    togglePause()
 }
 function toggleSpeed() {
     isDoubleSpeed = !isDoubleSpeed
     const doubleSpeedBtn = document.getElementById('speed-btn');
-    if (isDoubleSpeed) {
-        doubleSpeedBtn.textContent = '1x Speed';
-    } else {
-        doubleSpeedBtn.textContent = '2x Speed';
-    }
+    doubleSpeedBtn.textContent = isDoubleSpeed ? '1x Speed' : '2x Speed';
 }
-
 
 // 타이머
 function startTimer() {
@@ -183,145 +189,180 @@ function enemyNumberUpdate () {
 
 // 적 움직임
 function initEnemies() {
-    const enemySpawnInterval = setInterval(() => {
-        if (enemySpawnIndex < enemies.length) {
-            let enemyId = enemies[enemySpawnIndex];
-            if (enemyId > 0) {
-                const enemyInfo = totalEnemyDatas[enemyId];
-                const newEnemy = new Enemy(
-                    map.start[0] * tileWidth - 60,
-                    map.start[1] * tileHeight + 80,
-                    enemyInfo.speed
-                );
-                moveInfoEnemies.push(newEnemy);
-            }
-            enemySpawnIndex++;
-        } else {
-            clearInterval(enemySpawnInterval);
+    const container = document.getElementById('game-play-container');
+    const canvas = document.getElementById('gameCanvas');
+    const canvasRect = canvas.getBoundingClientRect();
+
+    const enemyInterval = setInterval(() => {
+        if (enemySpawnIndex >= enemies.length) {
+            clearInterval(enemyInterval);
+            return;
         }
-    }, 1000);
+
+        const enemyId = enemies[enemySpawnIndex++];
+        if (enemyId !== 0) {
+            const enemyInfo = totalEnemyDatas[enemyId];
+            const enemyElement = document.createElement('div');
+            enemyElement.classList.add('enemy');
+            container.appendChild(enemyElement);
+            
+            
+            const newEnemy = {
+                element: enemyElement,
+                speed: enemyInfo.speed * (tileWidth / frameRate),
+                waypointIndex: 0,
+                x: waypoints[0].x,
+                y: waypoints[0].y,
+                isMoving: true
+            };
+            enemyElement.style.left = `${newEnemy.x}px`;
+            enemyElement.style.top = `${newEnemy.y}px`;
+            moveInfoEnemies.push(newEnemy);
+        }
+    }, enemySpawnIntervalTime);
+    console.log(moveInfoEnemies);
 }
 
-function enemyMove() {
-    if (!isGamePaused && moveInfoEnemies.length > 0) {
-        moveInfoEnemies.forEach((enemy, index) => {
-            if (enemy.isMoving) {
-                const currentWaypoint = waypoints[enemy.currentWaypointIndex];
-                const dx = currentWaypoint.x - enemy.x;
-                const dy = currentWaypoint.y - enemy.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                const speedModifier = isDoubleSpeed ? 2 : 1;  // 이중 속도면 2, 아니면 1
-                const moveDistance = (enemy.speed * speedModifier) * (tileWidth / frameRate);
+function updateGame() {
+    if (!isGamePaused && !isGameEnd) {
+        moveInfoEnemies.forEach(enemy => moveEnemy(enemy));
+    }
+    animationFrame = requestAnimationFrame(updateGame);
+}
 
+function moveEnemy(enemy) {
+    if (!enemy.isMoving) {
+        return;
+    }
+    if (enemy.waypointIndex >= waypoints.length - 1) {
+        enemyReachedEnd(enemy)
+        return;
+    }
 
-                if (distance < moveDistance) {
-                    // 다음 웨이포인트에 도달
-                    enemy.x = currentWaypoint.x;
-                    enemy.y = currentWaypoint.y;
-                    enemy.currentWaypointIndex++;
-                    if (enemy.currentWaypointIndex >= waypoints.length) {
-                        enemy.isMoving = false;  // 마지막 웨이포인트에 도달했으면 이동 중지
-                        life--;
-                        remainenemiesNumber--;
-                        enemyNumberUpdate();
-                        if (life === 0) {
-                            loseGame();
-                        }
-                        lifeUpdate();
-                    }
-                } else {
-                    // 선형 이동 계산
-                    const ratio = moveDistance / distance;
-                    enemy.x += dx * ratio;
-                    enemy.y += dy * ratio;
-                }
-            } else {
-                moveInfoEnemies.splice(index, 1);  // 움직이지 않는 적은 리스트에서 제거
-            }
-        });
+    const target = waypoints[enemy.waypointIndex + 1];
+    const dx = target.x - enemy.x;
+    const dy = target.y - enemy.y;
+    const distance = Math.hypot(dx, dy);
+    const moveDistance = enemy.speed * (isDoubleSpeed ? 2 : 1);
+
+    if (distance <= moveDistance) {
+        enemy.x = target.x;
+        enemy.y = target.y;
+        enemy.waypointIndex++;
+    } else {
+        enemy.x += (dx / distance) * moveDistance;
+        enemy.y += (dy / distance) * moveDistance;
+    }
+
+    enemy.element.style.left = `${enemy.x + 10}px`;
+    enemy.element.style.top = `${enemy.y + 250}px`;
+}
+
+function enemyReachedEnd(enemy) {
+    enemy.isMoving = false;
+    enemy.element.remove();
+
+    life--;
+    remainenemiesNumber--;
+    enemyNumberUpdate();
+    lifeUpdate();
+
+    enemy.waypointIndex++;
+
+    if (life <= 0) {
+        loseGame();
+        moveInfoEnemies.forEach(e => e.isMoving = false);
+
     }
 }
+// TODO
+// 50 - 750
+// 타워
+document.getElementById('gameCanvas').addEventListener('click', function(event) {
+    if (isGameEnd) return;
 
-function drawEnemies() {
+    const canvas = event.target;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = event.clientX - rect.left ;
+    const clickY = event.clientY - rect.top ;
+    
+    const gridX = Math.round((400/19) * clickX / (rect.right - rect.left))-1;
+    const gridY = Math.round(7 * clickY / (rect.height - (canvas.height / 2))) - 1;
+
+    if (!canInstallTower(gridX, gridY)) {
+        alert('타워설치불가');
+        hideTowerSelectUI();
+        return;
+    }
+    selectedGrid = { gridX, gridY };
+    showTowerSelectUI(event.clientX, event.clientY);
+})
+
+function canInstallTower(gridX, gridY) {   
+    return map.board[gridY] && map.board[gridY][gridX] ===0;
+}
+function showTowerSelectUI (x, y) {
+    const ui = document.getElementById('tower-select');
+    ui.style.left = `${x}px`
+    ui.style.top = `${y}px`
+    ui.style.display = 'block';
+}
+function hideTowerSelectUI() {
+    const ui = document.getElementById('tower-select');
+    ui.style.display = 'none';
+    selectedGrid = null
+}
+function selectTowerAttribute(attribute) {
+    if (!selectedGrid) return;
+
+    const { gridX, gridY } = selectedGrid;
+    
+    if (map.board[gridY][gridX] >= 3) {
+        hideTowerSelectUI();
+        return;
+    }
     const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    drawMap();
-    moveInfoEnemies.forEach(enemy => {
-        if (enemy.isMoving) {
-            ctx.fillStyle = 'red';
-            ctx.fillRect(enemy.x, enemy.y + 5, tileWidth / 2, tileHeight / 2);
-        }
-    })
+    const rect = canvas.getBoundingClientRect();
+
+    const towerElement = document.createElement('div');
+    towerElement.classList.add('tower');
+    towerElement.style.left = `${gridX * tileWidth + 50 + rect.left}px`;
+    towerElement.style.top = `${gridY * tileHeight + 20 + rect.top}px`;
+
+    towerElement.dataset.attribute = attribute;
+
+    document.body.appendChild(towerElement);
+
+    // 맵에 설치 정보 반영
+    map.board[gridY][gridX] = towerIdCounter;
+    installedTowers.push({
+        id: towerIdCounter,
+        attribute,
+        level: 1,
+        x: gridX,
+        y: gridY,
+        element: towerElement
+    });
+    towerIdCounter++;
+
+    console.log(`타워 설치됨: ${attribute}, (${gridX}, ${gridY})`);
+    hideTowerSelectUI();
+
 }
 
-// TODO
 function attack() {
 
 }
 function enemyDie () {
 
 }
-function setupCanvasClickListener() {
-    const canvas = document.getElementById('gameCanvas');
-    canvas.addEventListener('click', handleCanvasClick);
-}
-
-function handleCanvasClick(event) {
-    const canvas = document.getElementById('gameCanvas');
-    
-    const rect = canvas.getBoundingClientRect();
-    console.log(event);
-    
-    const clickX = event.clientX - rect.left;
-    const clickY = event.clientY - rect.top;
-    
-    const gridX = Math.floor((clickX - 50) / tileWidth);
-    const gridY = Math.floor((clickY - 20) / tileHeight);
-    console.log(map);
-    
-    if (map && map.board[gridY][gridX] === 0) { // 0은 타워 설치 가능 구역
-        if (!towerPosition.find(p => p.x === gridX && p.y === gridY)) {
-            installTower(gridX, gridY);
-        } else {
-            console.log('이미 타워 있음.')
-        }
-    } else {
-        console.log('타워 설치 불가');
-        
-    }
-}
-function installTower(gridX, gridY) {
-    towerPosition.push({ x: gridX, y: gridY });
-    console.log(gridX, gridY);
-    
-}   
-
-function upgradeTower() {
-
-}
-function drawTowerRange() {
-
-}
 
 function victoryGame() {
 }
 function loseGame() {
-    isGameEnd = !isGameEnd
+    isGameEnd = true;
+    cancelAnimationFrame(animationFrame);
 }
-
-setInterval(() => {
-    if (isGameEnd) return;
-    if (!isGamePaused) {
-        enemyMove();
-        drawEnemies();
-    }
-}, 1000/frameRate)
-
-document.addEventListener('DOMContentLoaded', function() {
-    initGame();
-    initEnemies();
-})
 
 
 // DATA
@@ -390,12 +431,13 @@ class Waypoint {
 }
 
 class Enemy {
-    constructor(x, y, speed) {
-        this.x = x;
-        this.y = y;
+    constructor(element, speed) {
+        this.element = element;
         this.speed = speed;
         this.currentWaypointIndex = 0;
         this.isMoving = true;
+        this.x = 0;
+        this.y = 0;
     }
 
     moveToNextWaypoint(waypoints) {
@@ -449,15 +491,15 @@ const gameMapDatas = {
     ),
     2: new gameMap(2, 
         [
+        [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0],
+        [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1],
+        [0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
         ],
-        [[0, 3], [20, 3]],
+        [[0, 3], [0, 2], [2, 2], [2, 4], [4, 4], [4, 2], [6, 2], [6, 4], [8, 4], [8, 2], [10, 2], [10, 4], [12, 4], [12, 2], [14, 2], [14, 4], [16, 4], [16, 2], [18, 2], [18, 3], [20, 3]],
         [3, 0],
         [3, 7],
     )
