@@ -53,7 +53,7 @@ let selectedRect = null;
 
 let currentLevel;
 
-let installedTower = [];
+let installedTowers = [];
 let towerIdCounter = 3;
 
 let isGamePaused = false;
@@ -71,6 +71,8 @@ function getGamelevel() {
     const queryParams = new URLSearchParams(window.location.search);
     const level = queryParams.get('level');
     currentLevel = parseInt(level);
+    const levelDisplay = document.getElementById('current-level');
+    levelDisplay.textContent = `Level: ${currentLevel}`
     return currentLevel;
 }
 
@@ -220,7 +222,6 @@ function initEnemies() {
             moveInfoEnemies.push(newEnemy);
         }
     }, enemySpawnIntervalTime);
-    console.log(moveInfoEnemies);
 }
 
 function updateGame() {
@@ -278,78 +279,6 @@ function enemyReachedEnd(enemy) {
 // TODO
 // 50 - 750
 // 타워
-document.getElementById('gameCanvas').addEventListener('click', function(event) {
-    if (isGameEnd) return;
-
-    const canvas = event.target;
-    const rect = canvas.getBoundingClientRect();
-    const clickX = event.clientX - rect.left ;
-    const clickY = event.clientY - rect.top ;
-    
-    const gridX = Math.round((400/19) * clickX / (rect.right - rect.left))-1;
-    const gridY = Math.round(7 * clickY / (rect.height - (canvas.height / 2))) - 1;
-
-    if (!canInstallTower(gridX, gridY)) {
-        alert('타워설치불가');
-        hideTowerSelectUI();
-        return;
-    }
-    selectedGrid = { gridX, gridY };
-    showTowerSelectUI(event.clientX, event.clientY);
-})
-
-function canInstallTower(gridX, gridY) {   
-    return map.board[gridY] && map.board[gridY][gridX] ===0;
-}
-function showTowerSelectUI (x, y) {
-    const ui = document.getElementById('tower-select');
-    ui.style.left = `${x}px`
-    ui.style.top = `${y}px`
-    ui.style.display = 'block';
-}
-function hideTowerSelectUI() {
-    const ui = document.getElementById('tower-select');
-    ui.style.display = 'none';
-    selectedGrid = null
-}
-function selectTowerAttribute(attribute) {
-    if (!selectedGrid) return;
-
-    const { gridX, gridY } = selectedGrid;
-    
-    if (map.board[gridY][gridX] >= 3) {
-        hideTowerSelectUI();
-        return;
-    }
-    const canvas = document.getElementById('gameCanvas');
-    const rect = canvas.getBoundingClientRect();
-
-    const towerElement = document.createElement('div');
-    towerElement.classList.add('tower');
-    towerElement.style.left = `${gridX * tileWidth + 50 + rect.left}px`;
-    towerElement.style.top = `${gridY * tileHeight + 20 + rect.top}px`;
-
-    towerElement.dataset.attribute = attribute;
-
-    document.body.appendChild(towerElement);
-
-    // 맵에 설치 정보 반영
-    map.board[gridY][gridX] = towerIdCounter;
-    installedTowers.push({
-        id: towerIdCounter,
-        attribute,
-        level: 1,
-        x: gridX,
-        y: gridY,
-        element: towerElement
-    });
-    towerIdCounter++;
-
-    console.log(`타워 설치됨: ${attribute}, (${gridX}, ${gridY})`);
-    hideTowerSelectUI();
-
-}
-
 function attack() {
 
 }
