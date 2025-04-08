@@ -13,13 +13,13 @@
 // TODO : 타워 업그레이드   /디자인
 
 
-// TODO : 타워 범위 표시    /기능, 디자인
-
 // TODO : 공격, 사망 /기능, 디자인  
+// TODO : gold 업데이트 /기능, 디자인
 // TODO : coin 업데이트 /기능, 디자인
 
 // TODO : 적 다 제압시 승리 종료    /기능, 디자인
 
+// TODO : 타워 범위 표시    /기능, 디자인
 
 
 
@@ -369,8 +369,7 @@ function restartGame() {
 function quitGame() {
     const wasPaused = isGamePaused;
     isGamePaused = true;
-    const confirmQuit = confirm("메인페이지로 돌아가시겠습니까?");
-    if (confirmQuit) {
+    if (confirm("메인페이지로 돌아가시겠습니까?")) {
         window.location.href = 'main.html';
     } else {
         isGamePaused = wasPaused;
@@ -453,24 +452,6 @@ function initEnemies() {
     }, enemySpawnIntervalTime);
 }
 
-// 게임 루프
-function updateGame() {
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    drawMap();
-
-    if (!isGamePaused && !isGameEnd) {
-        moveInfoEnemies.forEach(enemy => enemy.move());
-    }
-
-    moveInfoEnemies.forEach(enemy => enemy.draw(ctx));
-    installedTowers.forEach(tower => tower.draw(ctx))
-
-    animationFrame = requestAnimationFrame(updateGame);
-}
-
 // 타워
 function initTower() {
     const canvas = document.getElementById('gameCanvas');
@@ -490,7 +471,6 @@ function initTower() {
         
         const cell = map.board[y][x];
         if (cell === 0) {
-            // 타워 설치 가능 구역
             selectedTowerGrid = [x, y];
             const towerSelectMenu = document.getElementById('tower-select');
             towerSelectMenu.style.left = `${clickedX}px`
@@ -567,10 +547,28 @@ function createUpgradeMenu(tower) {
 
 // TODO
 function attack() {
-
+    
 }
 function enemyDie () {
 
+}
+
+// 게임 루프
+function updateGame() {
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawMap();
+
+    if (!isGamePaused && !isGameEnd) {
+        moveInfoEnemies.forEach(enemy => enemy.move());
+    }
+
+    moveInfoEnemies.forEach(enemy => enemy.draw(ctx));
+    installedTowers.forEach(tower => tower.draw(ctx))
+
+    animationFrame = requestAnimationFrame(updateGame);
 }
 
 // 게임 승리

@@ -161,6 +161,16 @@ body, html {
     width: 800px;
     height: 475px;
     border: 1px solid #312390;
+    z-index:1
+}
+#rangeCanvas {
+    width: 800px;
+    height: 475px;
+    border:none;
+    pointer:none;
+    position:absolute;
+    left:0;
+    top:125px;
 }
 
 .game-button {
@@ -186,12 +196,16 @@ body, html {
     background-color: #ffffff;
     border: 1px solid #312390;
     border-radius: 5px;
+    width:70px;
     z-index: 50;
 }
+
 #tower-select button {
     display: none;
     background: white;
-    border: 1px solid #999;
+    border:none;
+    border-top:1px solid black;
+    width:100%;
     padding: 5px;
     z-index: 999;
 }
