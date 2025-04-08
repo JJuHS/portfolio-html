@@ -8,11 +8,11 @@
 // TODO : 적 5마리 이상 endpoint 지나가면 실패 종료 /디자인
 // TODO : 적 나오게 하기 및 이동    /디자인
 // TODO : 적 남은 수 업데이트 / 디자인
+// TODO : 빈 곳 클릭해서 타워 생성  /디자인   
+// TODO : 타워 설치 준비 시간 주기  /디자인
+// TODO : 타워 업그레이드   /디자인
 
 
-// TODO : 타워 설치 준비 시간 주기  /기능, 디자인   !CONTINUE
-// TODO : 빈 곳 클릭해서 타워 생성  /기능, 디자인   !CONTINUE
-// TODO : 타워 업그레이드   /기능, 디자인
 // TODO : 타워 범위 표시    /기능, 디자인
 
 // TODO : 공격, 사망 /기능, 디자인  
@@ -47,6 +47,7 @@ let currentLevel;   // 게임 레벨
 
 let installedTowers = [];   // 설치된 타워 목록
 let towerIdCounter = 3; // 생성될 타워 번호
+let selectedTowerGrid = null;
 
 let isGamePaused = false;   // 게임 중지 여부
 let isDoubleSpeed = false;  // 게임 배속 여부
@@ -95,6 +96,27 @@ class towerData {
     }
 }
 
+class Tower {
+    constructor(id, x, y, attribute, level = 1) {
+        this.id = id
+        this.x = x;
+        this.y = y;
+        this.attribute = attribute;
+        this.level = level;
+    }
+
+    draw(ctx) {
+        const colorMap = {
+            fire: 'crimson',
+            water: 'dodgerblue',
+            wind: 'mediumseagreen'
+        };
+        ctx.beginPath();
+        ctx.arc((this.x + 0.5) * tileWidth + 50, (this.y + 0.5) * tileHeight + 30, 4+this.level, 0, 2 * Math.PI);
+        ctx.fillStyle = colorMap[this.attribute] || 'gray';
+        ctx.fill();
+    }
+}
 class enemyData {
     constructor(id, attribute, hp, speed, level) {
         this.id = id
@@ -244,10 +266,10 @@ function initGame() {
     getGamelevel(); // 게임 레벨 불러오기
     loadGameData(); // 데이터 불러오기
     drawMap();  // 맵 그리기
-    initEnemies();  //
-    startTimer();   // 타이머 시작하기기
-    enemyNumberUpdate();    // 데이터 -> 적 수 설정하기
+    initTower();    // 타워 설치 클릭 이벤트
     initGameControls(); // 버튼에 이벤트 설정하기기
+    startTimer();   // 타이머 시작하기
+    enemyNumberUpdate();    // 데이터 -> 적 수 설정하기
 }
 
 // 게임 레벨 불러오기
@@ -284,7 +306,7 @@ function loadGameData() {
     });
 }
 
-// 맵 그리기기
+// 맵 그리기
 function drawMap() {    
     const canvas = document.getElementById('gameCanvas');
     if (!canvas) return;
@@ -303,9 +325,9 @@ function drawMap() {
                 ctx.fillStyle = 'white';
             }
 
-            ctx.fillRect(50+x * tileWidth, 30+y * tileHeight, tileWidth, tileHeight)
+            ctx.fillRect(50 + x * tileWidth, 30 + y * tileHeight, tileWidth, tileHeight)
             ctx.strokeStyle = '#312390';
-            ctx.strokeRect(50+x * tileWidth, 30+y * tileHeight, tileWidth, tileHeight)
+            ctx.strokeRect(50 + x * tileWidth, 30 + y * tileHeight, tileWidth, tileHeight)
         })
     })
     function drawWaypointDots() {
@@ -363,17 +385,33 @@ function toggleSpeed() {
 // 타이머
 function startTimer() {
     const timeDisplay = document.getElementById('game-time');
+    let prepareTime = 10;
+
     function pad(n) {
         return n < 10 ? '0' + n : n;
     }
     gameTimer = 0;
-    setInterval(() => {
-        if (!isGamePaused && !isGameEnd) {
-            gameTimer++;
+    const prepareInterval = setInterval(() => {
+        if (!isGamePaused)
+        if (prepareTime > 0) {
+            timeDisplay.textContent = `${prepareTime}초 후 게임 시작`;
+            prepareTime--;
+        } else if (prepareTime === 0) {
+            timeDisplay.textContent = "Start!";
+            prepareTime--;
+        } else {
+            clearInterval(prepareInterval);
+            let gameTimer = 0;
+            setInterval(() => {
+                if (!isGamePaused && !isGameEnd) {
+                    gameTimer++;
+                }
+                const minutes = Math.floor(gameTimer / 60);
+                const seconds = gameTimer % 60;
+                timeDisplay.textContent = `${pad(minutes)}:${pad(seconds)}`;
+            }, 1000);
+            initEnemies();
         }
-        const minutes = Math.floor(gameTimer / 60);
-        const seconds = gameTimer % 60;
-        timeDisplay.textContent = `${pad(minutes)}:${pad(seconds)}`
     }, 1000);
 }
 
@@ -428,11 +466,106 @@ function updateGame() {
     }
 
     moveInfoEnemies.forEach(enemy => enemy.draw(ctx));
+    installedTowers.forEach(tower => tower.draw(ctx))
 
     animationFrame = requestAnimationFrame(updateGame);
 }
-// TODO
+
 // 타워
+function initTower() {
+    const canvas = document.getElementById('gameCanvas');
+    const canvasRect = canvas.getBoundingClientRect();
+    
+    canvas.addEventListener('click', function (e) {
+        const clickedX = e.offsetX;
+        const clickedY = e.offsetY
+
+        const x = Math.floor((clickedX - 50) / tileWidth);
+        const y = Math.floor((clickedY - 70) / (2 * tileHeight))
+        
+        if (x<0 || y<0 || x>=20 || y>= 7) {
+            console.log('canvas 바깥 찍음');
+            return
+        }
+        
+        const cell = map.board[y][x];
+        if (cell === 0) {
+            // 타워 설치 가능 구역
+            selectedTowerGrid = [x, y];
+            const towerSelectMenu = document.getElementById('tower-select');
+            towerSelectMenu.style.left = `${clickedX}px`
+            towerSelectMenu.style.top = `${clickedY}px`;
+            towerSelectMenu.style.display = 'block';
+
+            [...towerSelectMenu.querySelectorAll('button')].forEach(btn => btn.style.display = 'block');
+        } else if (cell >= 3) {
+            upgradeTower(x, y)
+        } else {
+            console.log('타워 못 설치함');
+            
+        }
+    })
+}
+
+function selectTowerAttribute(attr) {
+    const [x, y] = selectedTowerGrid;
+    const tower = new Tower(
+        towerIdCounter, x, y, attr
+    )
+    installedTowers.push(tower);
+    map.board[y][x] = towerIdCounter++;
+    selectedTowerGrid = null;
+    const towerSelectMenu = document.getElementById('tower-select');
+    towerSelectMenu.style.display = 'none';
+    [...towerSelectMenu.querySelectorAll('button')].forEach(btn => btn.style.display = 'none');
+}
+
+function upgradeTower(x, y) {
+    const towerId = map.board[y][x];
+    const tower = installedTowers.find(t => t.id === towerId);
+    if (!tower) {return;}
+    createUpgradeMenu(tower)
+}
+
+function createUpgradeMenu(tower) {
+    let existing = document.getElementById('upgrade-menu');
+    if (existing) existing.remove();
+
+    const canvas = document.getElementById('gameCanvas');
+    const canvasRect = canvas.getBoundingClientRect();
+
+    const menu = document.createElement('div');
+    menu.id = 'upgrade-menu';
+    menu.className = 'upgrade-menu';
+    menu.style.left = `${tileWidth*tower.x + canvasRect.left + 50 + tileWidth/2}px`
+    menu.style.right = `${tileHeight*tower.y + canvasRect.top + 30 + tileHeight/2}px`
+    menu.style.display = 'flex'
+    menu.style.width = '50px';
+
+    if (tower.level < 3) {
+        const upgradeBtn = document.createElement('button');
+        upgradeBtn.textContent = '⬆️'
+        upgradeBtn.onclick = () => {
+            console.log(tower);
+            
+            document.body.removeChild(menu)
+            menu.remove()
+            if (tower.level < 3) tower.level++;
+        }
+        menu.appendChild(upgradeBtn);
+    }
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'X';
+    closeBtn.onclick = () => {
+        document.body.removeChild(menu);
+        menu.remove()
+    }
+    menu.appendChild(closeBtn);
+    document.body.appendChild(menu);
+}
+
+// TODO
 function attack() {
 
 }
@@ -448,6 +581,9 @@ function victoryGame() {
 }
 function loseGame() {
     isGameEnd = true;
+    isGamePaused = true;
     cancelAnimationFrame(animationFrame);
+    const pauseBtn = document.getElementById('pause-btn');
+    pauseBtn.remove()
 }
 
